@@ -1,6 +1,7 @@
 import * as cdk from '@aws-cdk/core';
 import { SPADeploy } from 'cdk-spa-deploy';
 
+
 export class InfrastructureStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -11,5 +12,7 @@ export class InfrastructureStack extends cdk.Stack {
         websiteFolder: '../webapp/out'
       })
     }
+
+
 
 }

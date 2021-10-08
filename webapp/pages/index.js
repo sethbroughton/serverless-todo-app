@@ -1,30 +1,58 @@
 import Head from 'next/head'
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
+import TodoList from '../components/TodoList';
 
 const Home = () => {
   const [inputText, setInputText] = useState("");
-  const [historyList, setHistoryList] = useState([]);
-  
+  const [todoList, setTodoList] = useState([{ id: 1, name: "make coffee", isCompleted: true }, { id: 2, name: "build something", isCompleted: false }]);
+
+  const addTodo = (e) => {
+    e.preventDefault();
+    inputText !== "" ? setTodoList([...todoList, { name: inputText, isCompleted: false }]) : null
+    setInputText("");
+  }
+
+  const completeTodo = (index) => {
+    const newTodos = [...todoList];
+    newTodos[index].isCompleted = !newTodos[index].isCompleted;
+    setTodoList(newTodos);
+  }
+
+  const removeTodo = (index) => {
+    const newTodos = [...todoList];
+    newTodos.splice(index,1);
+    setTodoList(newTodos);
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-2">
       <Head>
         <title>Todo App</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      
-      <input
-        onChange={(e) => {
-          setInputText(e.target.value);
-          setHistoryList([...historyList, e.target.value])
-        }}
-        placeholder="Let's do this..." /><br />
-      {inputText}
-      <hr/><br/>
-      <ul>
-        {historyList.map( (item) => {
-          return <div>{item}</div>
-        })}
-      </ul>
+      <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+          <span className="block text-indigo-600">The List</span>
+        </h2>
+      <div className="h-100 w-full flex items-center justify-center bg-teal-lightest font-sans">
+        <div className="bg-white rounded shadow p-6 m-4 w-full lg:w-3/4 lg:max-w-lg">
+          <div className="mb-4">
+            <h1 className="text-grey-darkest"></h1>
+            <form onSubmit={addTodo}>
+              <div className="flex mt-4">
+                <input className="shadow appearance-none border rounded w-full py-2 px-3 mr-4 text-grey-darker" placeholder="Add a Todo" name="text" type="text" value={inputText}
+                  onChange={(e) => setInputText(e.target.value)} />
+                <button type="submit" className="flex-no-shrink p-2 border-2 rounded text-teal border-teal hover:text-blue-600">Add</button>
+              </div>
+            </form>
+          </div>
+          <div>
+          </div>
+        </div>
+      </div>
+      <hr /><br />
+
+      <TodoList todos={todoList} completeTodo={completeTodo} removeTodo={removeTodo} />
+
     </div>
   )
 }
