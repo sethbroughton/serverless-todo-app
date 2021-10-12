@@ -1,14 +1,15 @@
 import Head from 'next/head'
 import React, { useState } from 'react'
 import TodoList from '../components/TodoList';
+import { uuid } from 'uuidv4';
 
-const Home = () => {
+const Home = ( {data} ) => {
   const [inputText, setInputText] = useState("");
-  const [todoList, setTodoList] = useState([{ id: 1, name: "make coffee", isCompleted: true }, { id: 2, name: "build something", isCompleted: false }]);
+  const [todoList, setTodoList] = useState([]);
 
   const addTodo = (e) => {
     e.preventDefault();
-    inputText !== "" ? setTodoList([...todoList, { name: inputText, isCompleted: false }]) : null
+    inputText !== "" ? setTodoList([...todoList, { name: inputText, id: uuid(), isCompleted: false }]) : null
     setInputText("");
   }
 
@@ -58,3 +59,7 @@ const Home = () => {
 }
 
 export default Home;
+
+
+
+
