@@ -136,19 +136,13 @@ export class DatabaseAPI  extends cdk.Construct {
               .addMethod('POST', new apigw.Integration({
                   type: apigw.IntegrationType.AWS,  //native AWS integration
                   integrationHttpMethod: "POST",
-                  uri: 'arn:aws:apigateway:us-east-1:dynamodb:action/Query', // dynamoDB get operation
+                  uri: 'arn:aws:apigateway:us-east-1:dynamodb:action/Scan', // dynamoDB get operation
                   options: {
                       credentialsRole: apigatewayIamRole,
                       requestTemplates: {
                           'application/json': JSON.stringify(
                               {
                                   "TableName": table.tableName,
-                                  "KeyConditionExpression": "id = :v1",
-                                  "ExpressionAttributeValues": {
-                                      ":v1": {
-                                          "S": "$input.params('id')"
-                                      }
-                                  }
                               }
                           )
                       },
