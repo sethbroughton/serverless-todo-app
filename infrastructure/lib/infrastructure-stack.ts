@@ -1,9 +1,10 @@
 import * as cdk from '@aws-cdk/core';
-import { RestApi, Cors, UsagePlan, Deployment } from '@aws-cdk/aws-apigateway';
+import { RestApi, Cors, UsagePlan, Deployment, UsagePlanProps, Period} from '@aws-cdk/aws-apigateway';
 import { Authentication } from './constructs/Authentication/authentication'
 import { DatabaseAPI } from './constructs/Database/database';
 import * as secretsmanager from '@aws-cdk/aws-secretsmanager';
 import { Stage } from '@aws-cdk/core';
+import { countReset } from 'console';
 
 export class InfrastructureStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -18,7 +19,7 @@ export class InfrastructureStack extends cdk.Stack {
         generateStringKey: 'api_key',
         secretStringTemplate: JSON.stringify({ username: 'web_user' }),
         excludeCharacters: ' %+~`#$&*()|[]{}:;<>?!\'/@"\\',
-    },
+      },
     })
 
     const apiKey = api.addApiKey('ApiKey', {
@@ -29,9 +30,14 @@ export class InfrastructureStack extends cdk.Stack {
       value: secret.secretValueFromJson('api_key').toString()
     })
 
-    const usagePlan = new UsagePlan(this, 'ApiUsagePlan');
-    usagePlan.addApiKey(apiKey);
-    api.addUsagePlan('UsagePlan');
+    const usagePlanProps: UsagePlanProps = {
+      name: "MyUsagePlan",
+      apiKey,
+      apiStages: [{ api: api, stage: api.deploymentStage }],
+      throttle: { burstLimit: 500, rateLimit: 1000 }, quota: { limit: 10000000, period: Period.MONTH }
+    }
+
+    api.addUsagePlan('MyUsagePlan', usagePlanProps);
 
     new DatabaseAPI(this, 'Database-API', {
       RestApi: api
