@@ -23,10 +23,6 @@ export class DatabaseAPI extends cdk.Construct {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
     });
 
-    const apigatewayIamRole = new iam.Role(this, "DefaultGatewayRole", {
-      assumedBy: new iam.ServicePrincipal("apigateway.amazonaws.com")
-    });
-
     const putPolicy = new iam.Policy(this, 'putPolicy', {
       statements: [
         new PolicyStatement({
@@ -230,7 +226,10 @@ export class DatabaseAPI extends cdk.Construct {
       service: 'dynamodb'
     })
 
-    const methodOptions = { methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }] };
+    const methodOptions = { 
+      methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }],
+      apiKeyRequired: true
+    };
 
     allResources.addMethod('GET', getAllIntegration, methodOptions);
     allResources.addMethod('Post', createIntegration, methodOptions);
