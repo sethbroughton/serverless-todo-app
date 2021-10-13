@@ -1,8 +1,8 @@
 import * as cdk from '@aws-cdk/core';
 import * as dynamodb from '@aws-cdk/aws-dynamodb';
-import * as apigw from '@aws-cdk/aws-apigateway';
 import * as iam from '@aws-cdk/aws-iam';
 import { AwsIntegration, RestApi } from '@aws-cdk/aws-apigateway';
+import { Effect, PolicyStatement, Role, ServicePrincipal } from '@aws-cdk/aws-iam';
 
 export interface DatabaseAPIProps {
   RestApi: RestApi
@@ -27,109 +27,69 @@ export class DatabaseAPI extends cdk.Construct {
       assumedBy: new iam.ServicePrincipal("apigateway.amazonaws.com")
     });
 
-    table.grantReadWriteData(apigatewayIamRole);
-
-    const responseModel = api.addModel("ResponseModel", {
-      contentType: "application/json",
-      modelName: "responseModel",
-      schema: {
-        schema: apigw.JsonSchemaVersion.DRAFT4,
-        title: "poleResponse",
-        type: apigw.JsonSchemaType.OBJECT,
-        properties: {
-          name: {
-            type: apigw.JsonSchemaType.STRING
-          }
-        }
-      }
+    const putPolicy = new iam.Policy(this, 'putPolicy', {
+      statements: [
+        new PolicyStatement({
+          actions: ['dynamodb:PutItem'],
+          effect: Effect.ALLOW,
+          resources: [table.tableArn],
+        }),
+      ],
     });
 
-    const errorResponseModel = api.addModel("ErrorResponseModel", {
-      contentType: "application/json",
-      modelName: "ErrorModel",
-      schema: {
-        schema: apigw.JsonSchemaVersion.DRAFT4,
-        title: "errorResponse",
-        type: apigw.JsonSchemaType.OBJECT,
-        properties: {
-          state: {
-            type: apigw.JsonSchemaType.STRING
-          },
-          message: { type: apigw.JsonSchemaType.STRING }
-        }
-      }
+    const putRole = new Role(this, 'putRole', {
+      assumedBy: new ServicePrincipal('apigateway.amazonaws.com')
     });
 
-    api.root.addResource('PostTodo')
-      .addMethod('POST', new apigw.Integration({
-        type: apigw.IntegrationType.AWS,  //native AWS integration
-        integrationHttpMethod: "POST",
-        uri: 'arn:aws:apigateway:us-east-1:dynamodb:action/PutItem', // dynamoDB put operation
-        options: {
-          credentialsRole: apigatewayIamRole,
-          requestTemplates: {
-            'application/json': JSON.stringify({
-              'TableName': table.tableName, 'Item': {
-                'id': { 'S': "$input.path('$.id')" },
-                'task': { 'S': "$input.path('$.task')" },
-                'isCompleted': { 'B': "$input.path('$.isCompleted')" }
-              }
-            })
-          },
-          passthroughBehavior: apigw.PassthroughBehavior.NEVER,
-          integrationResponses: [
-            {
-              //based on response, this tells api gateway what to send back
-              statusCode: "200",
-              responseTemplates: {
-                'application/json': JSON.stringify({ message: 'item added to db' })
-              }
-            },
-            {
-              selectionPattern: '^\[BadRequest\].*',
-              statusCode: "400",
-              responseTemplates: {
-                'application/json': JSON.stringify({ state: 'error', message: "$util.escapeJavaScript($input.path('$.errorMessage'))" })
-              },
-              responseParameters: {
-                'method.response.header.Content-Type': "'application/json'",
-                'method.response.header.Access-Control-Allow-Origin': "'*'",
-                'method.response.header.Access-Control-Allow-Credentials': "'true'"
-              }
-            }
-          ]
-        }
-      }),
-        {
-          methodResponses: [ //We need to define what models are allowed on our method response
-            {
-              // Successful response from the integration
-              statusCode: '200',
-              // Define what parameters are allowed or not
-              responseParameters: {
-                'method.response.header.Content-Type': true,
-                'method.response.header.Access-Control-Allow-Origin': true,
-                'method.response.header.Access-Control-Allow-Credentials': true
-              },
-              // Validate the schema on the response
-              responseModels: {
-                'application/json': responseModel
-              }
-            },
-            {
-              // Same thing for the error responses
-              statusCode: '400',
-              responseParameters: {
-                'method.response.header.Content-Type': true,
-                'method.response.header.Access-Control-Allow-Origin': true,
-                'method.response.header.Access-Control-Allow-Credentials': true
-              },
-              responseModels: {
-                'application/json': errorResponseModel
-              }
-            }
-          ]
-        })
+    putRole.attachInlinePolicy(putPolicy);
+
+    const getPolicy = new iam.Policy(this, 'getPolicy', {
+      statements: [
+        new PolicyStatement({
+          actions: ['dynamodb:GetItem'],
+          effect: Effect.ALLOW,
+          resources: [table.tableArn]
+        }),
+      ],
+    });
+
+    const getRole = new Role(this, 'getRole', {
+      assumedBy: new ServicePrincipal('apigateway.amazonaws.com')
+    });
+
+    getRole.attachInlinePolicy(getPolicy);
+
+    const deletePolicy = new iam.Policy(this, 'deletePolicy', {
+      statements: [
+        new PolicyStatement({
+          actions: ['dynamodb:DeleteItem'],
+          effect: Effect.ALLOW,
+          resources: [table.tableArn]
+        }),
+      ],
+    });
+
+    const deleteRole = new Role(this, 'deleteRole', {
+      assumedBy: new ServicePrincipal('apigateway.amazonaws.com')
+    });
+
+    deleteRole.attachInlinePolicy(deletePolicy);
+
+    const scanPolicy = new iam.Policy(this, 'scanPolicy', {
+      statements: [
+        new PolicyStatement({
+          actions: ['dynamodb:Scan'],
+          effect: Effect.ALLOW,
+          resources: [table.tableArn]
+        }),
+      ],
+    });
+
+    const scanRole = new Role(this, 'scanRole', {
+      assumedBy: new ServicePrincipal('apigateway.amazonaws.com')
+    });
+
+    scanRole.attachInlinePolicy(scanPolicy);
 
     const errorResponses = [
       {
@@ -152,35 +112,21 @@ export class DatabaseAPI extends cdk.Construct {
       },
     ];
 
-    const integrationResponses =
-      [
-        {
-          //based on response, this tells api gateway what to send back
-          statusCode: "200",
-          responseTemplates: {
-            'application/json':
-              `#set($inputRoot = $input.path('$'))
-                {
-                    "task": [
-                        #foreach($elem in $inputRoot.Items) {
-                            "id": "$elem.id.S",
-                            "task": "$elem.task.S",
-                            "isCompleted": "$elem.isCompleted.B"
-                        }#if($foreach.hasNext),#end
-                    #end
-                    ]
-                }`
-          }
-        },
-        ...errorResponses
-      ]
+    const integrationResponses = [
+      {
+        statusCode: '200',
+      },
+      ...errorResponses,
+    ];
 
+    const allResources = api.root.addResource("todos");
 
+    const oneResource = allResources.addResource('{id}');
 
     const getAllIntegration = new AwsIntegration({
       action: 'Scan',
       options: {
-        credentialsRole: apigatewayIamRole,
+        credentialsRole: scanRole,
         integrationResponses,
         requestTemplates: {
           'application/json': JSON.stringify(
@@ -193,92 +139,105 @@ export class DatabaseAPI extends cdk.Construct {
       service: 'dynamodb'
     })
 
-    const allResources = api.root.addResource('todos');
+    const createIntegration = new AwsIntegration({
+      action: 'PutItem',
+      options: {
+        credentialsRole: putRole,
+        integrationResponses: [
+          {
+            statusCode: '200',
+            responseTemplates: {
+              'application/json': JSON.stringify({
+                "requestId": "$context.requestId"
+              })
+            },
+          },
+          ...errorResponses
+        ],
+        requestTemplates: {
+          'application/json': JSON.stringify({
+            'TableName': table.tableName, 'Item': {
+              'id': { 'S': "$input.path('$.id')" },
+              'task': { 'S': "$input.path('$.task')" },
+              'isCompleted': { 'B': "$input.path('$.isCompleted')" }
+            }
+          })
+        },
+      },
+      service: 'dynamodb'
+    })
+
+    const deleteIntegration = new AwsIntegration({
+      action: 'DeleteItem',
+      options: {
+        credentialsRole: deleteRole,
+        integrationResponses,
+        requestTemplates: {
+          'application/json': JSON.stringify({
+            "Key": {
+              "id": {
+                "S": "$method.request.path.id"
+              }
+            },
+            "TableName": table.tableName
+          })
+        }
+      },
+      service: 'dynamodb',
+    });
+
+    const getIntegration = new AwsIntegration({
+      action: 'GetItem',
+      options: {
+        credentialsRole: getRole,
+        integrationResponses,
+        requestTemplates: {
+          'application/json': JSON.stringify({
+            "Key": {
+              "id": {
+                "S": "$method.request.path.id"
+              }
+            },
+            "TableName": table.tableName
+          }),
+        },
+      },
+      service: 'dynamodb'
+    });
+
+    const updateIntegration = new AwsIntegration({
+      action: 'PutItem',
+      options: {
+        credentialsRole: putRole,
+        integrationResponses,
+        requestTemplates: {
+          'application/json': JSON.stringify({
+            "Item": {
+              "id": {
+                "S": "$method.request.path.id"
+              },
+              "task": {
+                "S": "$input.path('$.task')"
+              },
+              "isCompleted": {
+                "S": "$input.path('$.isCompleted')"
+              }
+            },
+            "TableName": table.tableName
+          }),
+        }
+      },
+      service: 'dynamodb'
+    })
 
     const methodOptions = { methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }] };
 
     allResources.addMethod('GET', getAllIntegration, methodOptions);
-
-    // api.root.addResource('todos')
-    //     .addMethod('GET', new apigw.Integration({
-    //         type: apigw.IntegrationType.AWS,  //native AWS integration
-    //         integrationHttpMethod: "GET",
-    //         uri: 'arn:aws:apigateway:us-east-1:dynamodb:action/Scan', // dynamoDB get operation
-    //         options: {
-    //             credentialsRole: apigatewayIamRole,
-    //             requestTemplates: {
-    //                 'application/json': JSON.stringify(
-    //                     {
-    //                         "TableName": table.tableName,
-    //                     }
-    //                 )
-    //             },
-    //             passthroughBehavior: apigw.PassthroughBehavior.NEVER,
-    //             integrationResponses: [
-    //                 {
-    //                     //based on response, this tells api gateway what to send back
-    //                     statusCode: "200",
-    //                     responseTemplates: {
-    //                         'application/json': 
-    //                         `#set($inputRoot = $input.path('$'))
-    //                         {
-    //                             "task": [
-    //                                 #foreach($elem in $inputRoot.Items) {
-    //                                     "id": "$elem.id.S",
-    //                                     "task": "$elem.task.S",
-    //                                     "isCompleted": "$elem.isCompleted.B"
-    //                                 }#if($foreach.hasNext),#end
-    //                             #end
-    //                             ]
-    //                         }`
-    //                     }
-    //                 },
-    //                 {
-    //                     selectionPattern: '^\[BadRequest\].*',
-    //                     statusCode: "400",
-    //                     responseTemplates: {
-    //                         'application/json': JSON.stringify({ state: 'error', message: "$util.escapeJavaScript($input.path('$.errorMessage'))" })
-    //                     },
-    //                     responseParameters: {
-    //                         'method.response.header.Content-Type': "'application/json'",
-    //                         'method.response.header.Access-Control-Allow-Origin': "'*'",
-    //                         'method.response.header.Access-Control-Allow-Credentials': "'true'"
-    //                     }
-    //                 }
-    //             ]
-    //         }
-    //     }),
-    //         {
-    //             methodResponses: [ //We need to define what models are allowed on our method response
-    //                 {
-    //                     // Successful response from the integration
-    //                     statusCode: '200',
-    //                     // Define what parameters are allowed or not
-    //                     responseParameters: {
-    //                         'method.response.header.Content-Type': true,
-    //                         'method.response.header.Access-Control-Allow-Origin': true,
-    //                         'method.response.header.Access-Control-Allow-Credentials': true
-    //                     },
-    //                     // Validate the schema on the response
-    //                     responseModels: {
-    //                         'application/json': responseModel
-    //                     }
-    //                 },
-    //                 {
-    //                     // Same thing for the error responses
-    //                     statusCode: '400',
-    //                     responseParameters: {
-    //                         'method.response.header.Content-Type': true,
-    //                         'method.response.header.Access-Control-Allow-Origin': true,
-    //                         'method.response.header.Access-Control-Allow-Credentials': true
-    //                     },
-    //                     responseModels: {
-    //                         'application/json': errorResponseModel
-    //                     }
-    //                 }
-    //             ]
-    //         })
-
+    allResources.addMethod('Post', createIntegration, methodOptions);
+    
+    oneResource.addMethod('DELETE', deleteIntegration, methodOptions);
+    oneResource.addMethod('GET', getIntegration, methodOptions);
+    oneResource.addMethod('PUT', updateIntegration, methodOptions);
 
   }
 }
