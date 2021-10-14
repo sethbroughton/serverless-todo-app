@@ -1,10 +1,8 @@
 import * as cdk from '@aws-cdk/core';
-import { RestApi, Cors, UsagePlan, Deployment, UsagePlanProps, Period} from '@aws-cdk/aws-apigateway';
+import { RestApi, Cors, UsagePlanProps, Period } from '@aws-cdk/aws-apigateway';
 import { Authentication } from './constructs/Authentication/authentication'
 import { DatabaseAPI } from './constructs/Database/database';
 import * as secretsmanager from '@aws-cdk/aws-secretsmanager';
-import { Stage } from '@aws-cdk/core';
-import { countReset } from 'console';
 
 export class InfrastructureStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -12,7 +10,13 @@ export class InfrastructureStack extends cdk.Stack {
 
     new Authentication(this, 'TodoApp-authentication');
 
-    const api = new RestApi(this, 'TodoApp-ApiGateway');
+    const api = new RestApi(this, 'TodoApp-ApiGateway', {
+      defaultCorsPreflightOptions: {
+        allowOrigins: Cors.ALL_ORIGINS,
+        allowMethods: Cors.ALL_METHODS,
+        allowHeaders: ['x-api-key']
+      }
+    });
 
     const secret = new secretsmanager.Secret(this, 'Secret', {
       generateSecretString: {
@@ -25,7 +29,19 @@ export class InfrastructureStack extends cdk.Stack {
     const apiKey = api.addApiKey('ApiKey', {
       apiKeyName: 'todo-app-api-key-v2',
       defaultCorsPreflightOptions: {
-        allowOrigins: Cors.ALL_ORIGINS,
+        allowHeaders: [
+          'Content-Type',
+          'X-Amz-Date',
+          'Authorization',
+          'X-Api-Key',
+          'Access-Control-Allow-Methods',
+          'Access-Control-Allow-Headers',
+          'Access-Control-Allow-Origin'
+        ],
+        allowMethods: ['OPTIONS', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+        allowCredentials: true,
+        allowOrigins: ['http://localhost:3000'],
+
       },
       value: secret.secretValueFromJson('api_key').toString()
     })

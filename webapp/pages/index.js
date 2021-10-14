@@ -1,11 +1,25 @@
 import Head from 'next/head'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import TodoList from '../components/TodoList';
 import { uuid } from 'uuidv4';
 
-const Home = ( {data} ) => {
+const Home = ( ) => {
   const [inputText, setInputText] = useState("");
   const [todoList, setTodoList] = useState([]);
+
+  useEffect(() => {
+    fetchTodos()
+  }, todoList)
+
+  const fetchTodos = async () => {
+    const response = await fetch(`https://spxxn8wa94.execute-api.us-east-1.amazonaws.com/prod/todos`, {
+      headers: {
+        'x-api-key': 'aiaEx,^MkI2957^llai,AT8y2=FmFrSj'
+      },
+    });
+    const data = await response.json();
+    console.log(data);
+  }
 
   const addTodo = (e) => {
     e.preventDefault();

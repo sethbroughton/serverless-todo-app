@@ -96,6 +96,11 @@ export class DatabaseAPI extends cdk.Construct {
                   "error": "Bad input!"
                 }`,
         },
+        responseParameters: {
+          'method.response.header.Content-Type': "'application/json'",
+          'method.response.header.Access-Control-Allow-Origin': "'*'",
+          'method.response.header.Access-Control-Allow-Credentials': "'true'"
+      }
       },
       {
         selectionPattern: '5\\d{2}',
@@ -105,17 +110,32 @@ export class DatabaseAPI extends cdk.Construct {
                   "error": "Internal Service Error!"
                 }`,
         },
+        responseParameters: {
+          'method.response.header.Content-Type': "'application/json'",
+          'method.response.header.Access-Control-Allow-Origin': "'*'",
+          'method.response.header.Access-Control-Allow-Credentials': "'true'"
+      }
       },
     ];
 
     const integrationResponses = [
       {
         statusCode: '200',
+        responseParameters: {
+        'method.response.header.Content-Type': "'application/json'",
+        'method.response.header.Access-Control-Allow-Origin': "'*'",
+        'method.response.header.Access-Control-Allow-Credentials': "'true'"
+    }
       },
       ...errorResponses,
     ];
 
     const allResources = api.root.addResource("todos");
+    // allResources.addCorsPreflight({
+    //   allowOrigins: ['*'],
+    //   allowMethods: ['*'],
+    //   allowCredentials: true,
+    // })
 
     const oneResource = allResources.addResource('{id}');
 
@@ -226,17 +246,45 @@ export class DatabaseAPI extends cdk.Construct {
       service: 'dynamodb'
     })
 
-    const methodOptions = { 
-      methodResponses: [{ statusCode: '200' }, { statusCode: '400' }, { statusCode: '500' }],
+    const methodOptions = {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Content-Type': true,
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Credentials': true
+          },
+        },
+        {
+          statusCode: '400',
+          responseParameters: {
+            'method.response.header.Content-Type': true,
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Credentials': true
+          },
+        }, {
+          statusCode: '500',
+          'method.response.header.Content-Type': true,
+          'method.response.header.Access-Control-Allow-Origin': true,
+          'method.response.header.Access-Control-Allow-Credentials': true
+        }],
       apiKeyRequired: true
     };
 
     allResources.addMethod('GET', getAllIntegration, methodOptions);
     allResources.addMethod('Post', createIntegration, methodOptions);
-    
+
     oneResource.addMethod('DELETE', deleteIntegration, methodOptions);
     oneResource.addMethod('GET', getIntegration, methodOptions);
     oneResource.addMethod('PUT', updateIntegration, methodOptions);
+
+    // allResources.addCorsPreflight({
+    //   allowOrigins: [ 'https://amazon.com' ],
+    //   allowMethods: [ 'GET', 'PUT' ]
+    // });
+
+
 
   }
 }
