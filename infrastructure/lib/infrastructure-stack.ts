@@ -28,21 +28,6 @@ export class InfrastructureStack extends cdk.Stack {
 
     const apiKey = api.addApiKey('ApiKey', {
       apiKeyName: 'todo-app-api-key-v2',
-      defaultCorsPreflightOptions: {
-        allowHeaders: [
-          'Content-Type',
-          'X-Amz-Date',
-          'Authorization',
-          'X-Api-Key',
-          'Access-Control-Allow-Methods',
-          'Access-Control-Allow-Headers',
-          'Access-Control-Allow-Origin'
-        ],
-        allowMethods: ['OPTIONS', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-        allowCredentials: true,
-        allowOrigins: ['http://localhost:3000'],
-
-      },
       value: secret.secretValueFromJson('api_key').toString()
     })
 

@@ -131,11 +131,6 @@ export class DatabaseAPI extends cdk.Construct {
     ];
 
     const allResources = api.root.addResource("todos");
-    // allResources.addCorsPreflight({
-    //   allowOrigins: ['*'],
-    //   allowMethods: ['*'],
-    //   allowCredentials: true,
-    // })
 
     const oneResource = allResources.addResource('{id}');
 
@@ -278,13 +273,6 @@ export class DatabaseAPI extends cdk.Construct {
     oneResource.addMethod('DELETE', deleteIntegration, methodOptions);
     oneResource.addMethod('GET', getIntegration, methodOptions);
     oneResource.addMethod('PUT', updateIntegration, methodOptions);
-
-    // allResources.addCorsPreflight({
-    //   allowOrigins: [ 'https://amazon.com' ],
-    //   allowMethods: [ 'GET', 'PUT' ]
-    // });
-
-
 
   }
 }
