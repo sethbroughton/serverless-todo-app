@@ -9,7 +9,7 @@ const Home = ( ) => {
 
   useEffect(() => {
     fetchTodos()
-  }, todoList)
+  },[])
 
   const fetchTodos = async () => {
     const response = await fetch(`https://spxxn8wa94.execute-api.us-east-1.amazonaws.com/prod/todos`, {
@@ -18,7 +18,11 @@ const Home = ( ) => {
       },
     });
     const data = await response.json();
-    console.log(data);
+    setTodoList(data.Items);
+  }
+
+  const addTodoApi = async () => {
+    const response = awat
   }
 
   const addTodo = (e) => {
