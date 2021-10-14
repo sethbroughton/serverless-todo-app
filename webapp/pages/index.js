@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 import TodoList from '../components/TodoList';
 import { uuid } from 'uuidv4';
 
-const Home = ( ) => {
+const Home = ( {apiKey} ) => {
   const [inputText, setInputText] = useState("");
   const [todoList, setTodoList] = useState([]);
 
@@ -14,15 +14,21 @@ const Home = ( ) => {
   const fetchTodos = async () => {
     const response = await fetch(`https://spxxn8wa94.execute-api.us-east-1.amazonaws.com/prod/todos`, {
       headers: {
-        'x-api-key': 'aiaEx,^MkI2957^llai,AT8y2=FmFrSj'
+        'x-api-key': apiKey
       },
     });
     const data = await response.json();
     setTodoList(data.Items);
+
   }
+  
 
   const addTodoApi = async () => {
-    const response = awat
+    const response = await fetch(`https://spxxn8wa94.execute-api.us-east-1.amazonaws.com/prod/todos`, {
+      headers: {
+        'x-api-key': apiKey
+      }
+    })
   }
 
   const addTodo = (e) => {
@@ -76,7 +82,22 @@ const Home = ( ) => {
   )
 }
 
+export async function getStaticProps() {
+  // Using the variables below in the browser will return `undefined`. Next.js doesn't
+  // expose environment variables unless they start with `NEXT_PUBLIC_`
+  console.log('[Node.js only] ENV_VARIABLE:', process.env.API_KEY)
+  console.log(
+    '[Node.js only] ENV_LOCAL_VARIABLE:',
+    process.env.API_KEY
+  )
+  const apiKey = process.env.API_KEY;
+
+  return { props: {apiKey} }
+}
+
 export default Home;
+
+
 
 
 

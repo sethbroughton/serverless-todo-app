@@ -21,13 +21,13 @@ export class InfrastructureStack extends cdk.Stack {
     const secret = new secretsmanager.Secret(this, 'Secret', {
       generateSecretString: {
         generateStringKey: 'api_key',
-        secretStringTemplate: JSON.stringify({ username: 'web_user' }),
+        secretStringTemplate: JSON.stringify({ username: 'my_web_user' }),
         excludeCharacters: ' %+~`#$&*()|[]{}:;<>?!\'/@"\\',
       },
     })
 
     const apiKey = api.addApiKey('ApiKey', {
-      apiKeyName: 'todo-app-api-key-v2',
+      apiKeyName: 'todo-app-api-key-v3',
       value: secret.secretValueFromJson('api_key').toString()
     })
 
