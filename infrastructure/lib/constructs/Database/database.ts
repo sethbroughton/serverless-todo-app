@@ -149,7 +149,7 @@ export class DatabaseAPI extends cdk.Construct {
                       #foreach($elem in $inputRoot.Items) {
                           "id": "$elem.id.S",
                           "task": "$elem.task.S",
-                          "isCompleted": "$elem.isCompleted.Bool"
+                          "isCompleted": "$elem.isCompleted.BOOL"
                       }#if($foreach.hasNext),#end
                   #end
                   ]
