@@ -138,7 +138,30 @@ export class DatabaseAPI extends cdk.Construct {
       action: 'Scan',
       options: {
         credentialsRole: scanRole,
-        integrationResponses,
+        integrationResponses: [
+          {
+            statusCode: '200',
+            responseTemplates: {
+              'application/json': 
+              `#set($inputRoot = $input.path('$'))
+              {
+                  "todo": [
+                      #foreach($elem in $inputRoot.Items) {
+                          "id": "$elem.id.S",
+                          "task": "$elem.task.S",
+                          "isCompleted": "$elem.isCompleted.B"
+                      }#if($foreach.hasNext),#end
+                  #end
+                  ]
+              }`
+            },
+            responseParameters: {
+              'method.response.header.Content-Type': "'application/json'",
+              'method.response.header.Access-Control-Allow-Origin': "'*'",
+              'method.response.header.Access-Control-Allow-Credentials': "'true'"
+          },
+          }
+        ],
         requestTemplates: {
           'application/json': JSON.stringify(
             {
@@ -162,7 +185,12 @@ export class DatabaseAPI extends cdk.Construct {
                 "requestId": "$context.requestId"
               })
             },
+            responseParameters: {
+              'method.response.header.Content-Type': "'application/json'",
+              'method.response.header.Access-Control-Allow-Origin': "'*'",
+              'method.response.header.Access-Control-Allow-Credentials': "'true'"
           },
+        },
           ...errorResponses
         ],
         requestTemplates: {
@@ -170,7 +198,7 @@ export class DatabaseAPI extends cdk.Construct {
             'TableName': table.tableName, 'Item': {
               'id': { 'S': "$input.path('$.id')" },
               'task': { 'S': "$input.path('$.task')" },
-              'isCompleted': { 'B': "$input.path('$.isCompleted')" }
+              'isCompleted': { 'BOOL': "$input.path('$.isCompleted')" }
             }
           })
         },
@@ -231,7 +259,7 @@ export class DatabaseAPI extends cdk.Construct {
                 "S": "$input.path('$.task')"
               },
               "isCompleted": {
-                "S": "$input.path('$.isCompleted')"
+                "BOOL": "$input.path('$.isCompleted')"
               }
             },
             "TableName": table.tableName

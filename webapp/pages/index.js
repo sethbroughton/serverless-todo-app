@@ -1,51 +1,96 @@
 import Head from 'next/head'
 import React, { useState, useEffect } from 'react'
 import TodoList from '../components/TodoList';
-import { uuid } from 'uuidv4';
+import { v4 as uuid_v4 } from "uuid"
 
-const Home = ( {apiKey} ) => {
+const Home = ({ apiKey }) => {
   const [inputText, setInputText] = useState("");
   const [todoList, setTodoList] = useState([]);
 
   useEffect(() => {
     fetchTodos()
-  },[])
+  }, [])
 
   const fetchTodos = async () => {
     const response = await fetch(`https://spxxn8wa94.execute-api.us-east-1.amazonaws.com/prod/todos`, {
+      method: 'GET',
       headers: {
-        'x-api-key': apiKey
+        'x-api-key': apiKey,
       },
     });
     const data = await response.json();
-    setTodoList(data.Items);
+    setTodoList(data.todo);
 
   }
-  
 
-  const addTodoApi = async () => {
+  const addTodoApi = async (todo) => {
+    const { id, task, isCompleted } = todo;
     const response = await fetch(`https://spxxn8wa94.execute-api.us-east-1.amazonaws.com/prod/todos`, {
+      method: 'POST',
       headers: {
-        'x-api-key': apiKey
-      }
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        "id": id,
+        "task": task,
+        "isCompleted": isCompleted
+    })
     })
   }
 
   const addTodo = (e) => {
     e.preventDefault();
-    inputText !== "" ? setTodoList([...todoList, { name: inputText, id: uuid(), isCompleted: false }]) : null
+    const todo = {
+      task: inputText,
+      id: uuid_v4(),
+      isCompleted: false
+    }
+    if (inputText !== "") {
+      setTodoList([...todoList, todo]);
+      addTodoApi(todo);
+    }
     setInputText("");
+  }
+
+  const updateTodoApi = async (todo) => {
+    const id = todo.id;
+    await fetch(`https://spxxn8wa94.execute-api.us-east-1.amazonaws.com/prod/todos/${id}`, {
+      method: 'PUT', 
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        "task": todo.task,
+        "isCompleted": todo.isCompleted
+      })
+    })
   }
 
   const completeTodo = (index) => {
     const newTodos = [...todoList];
     newTodos[index].isCompleted = !newTodos[index].isCompleted;
     setTodoList(newTodos);
+    updateTodoApi(newTodos[index]);
+  }
+
+  const removeTodoApi = async (todo) => {
+    const id = todo.id;
+    await fetch(`https://spxxn8wa94.execute-api.us-east-1.amazonaws.com/prod/todos/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json'
+      }
+    })
   }
 
   const removeTodo = (index) => {
     const newTodos = [...todoList];
-    newTodos.splice(index,1);
+    removeTodoApi(newTodos[index]);
+
+    newTodos.splice(index, 1);
     setTodoList(newTodos);
   }
 
@@ -56,8 +101,8 @@ const Home = ( {apiKey} ) => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-          <span className="block text-indigo-600">The List</span>
-        </h2>
+        <span className="block text-indigo-600">The List</span>
+      </h2>
       <div className="h-100 w-full flex items-center justify-center bg-teal-lightest font-sans">
         <div className="bg-white rounded shadow p-6 m-4 w-full lg:w-3/4 lg:max-w-lg">
           <div className="mb-4">
@@ -83,16 +128,9 @@ const Home = ( {apiKey} ) => {
 }
 
 export async function getStaticProps() {
-  // Using the variables below in the browser will return `undefined`. Next.js doesn't
-  // expose environment variables unless they start with `NEXT_PUBLIC_`
-  console.log('[Node.js only] ENV_VARIABLE:', process.env.API_KEY)
-  console.log(
-    '[Node.js only] ENV_LOCAL_VARIABLE:',
-    process.env.API_KEY
-  )
   const apiKey = process.env.API_KEY;
 
-  return { props: {apiKey} }
+  return { props: { apiKey } }
 }
 
 export default Home;

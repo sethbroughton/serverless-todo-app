@@ -14,7 +14,8 @@ export class InfrastructureStack extends cdk.Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: Cors.ALL_ORIGINS,
         allowMethods: Cors.ALL_METHODS,
-        allowHeaders: ['x-api-key']
+        allowHeaders: ['x-api-key','Content-Type'],
+        allowCredentials: true
       }
     });
 
