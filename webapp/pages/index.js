@@ -20,6 +20,7 @@ const Home = ({ apiKey }) => {
     });
     const data = await response.json();
     setTodoList(data.todo);
+    console.log(todoList[0]);
 
   }
 
