@@ -19,8 +19,16 @@ const Home = ({ apiKey }) => {
       },
     });
     const data = await response.json();
-    setTodoList(data.todo);
-    console.log(todoList);
+    const todos = data.todo.map((item)=> {
+      if(item.isCompleted === 'true'){
+        item.isCompleted = true;
+      } else {
+        item.isCompleted = false;
+      }
+      return item;
+    })
+
+    setTodoList(todos);
   }
 
   const addTodoApi = async (todo) => {
