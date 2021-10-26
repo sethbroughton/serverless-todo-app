@@ -3,12 +3,13 @@ import { RestApi, Cors, UsagePlanProps, Period } from '@aws-cdk/aws-apigateway';
 import { Authentication } from './constructs/Authentication/authentication'
 import { DatabaseAPI } from './constructs/Database/database';
 import * as secretsmanager from '@aws-cdk/aws-secretsmanager';
+import * as cognito from '@aws-cdk/aws-cognito'
 
 export class InfrastructureStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    new Authentication(this, 'TodoApp-authentication');
+    const auth = new Authentication(this, 'TodoApp-authentication');
 
     const api = new RestApi(this, 'TodoApp-ApiGateway', {
       defaultCorsPreflightOptions: {

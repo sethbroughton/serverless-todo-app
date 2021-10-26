@@ -1,75 +1,74 @@
 import * as cdk from '@aws-cdk/core';
 import * as cognito from '@aws-cdk/aws-cognito';
+import { truncate } from 'fs';
 
 export interface AuthenticationProps {
 
 }
 
 export class Authentication extends cdk.Construct {
+
+    public readonly userPool: cognito.IUserPool;
+
+    public readonly userPoolClient: cognito.IUserPoolClient;
+
     constructor(scope: cdk.Construct, id: string) {
         super(scope, id);
 
-        const pool = new cognito.UserPool(this, 'myuserpool', {
-            userPoolName: 'todoapp-userpool',
-            selfSignUpEnabled: true,
-            userVerification: {
-                emailSubject: 'Verify your email for our todo app!',
-                emailBody: 'Thanks for signing up to our todo app! Your verification code is {####}',
-                emailStyle: cognito.VerificationEmailStyle.CODE,
+       this.userPool = new cognito.UserPool(this, 'UserPool', {
+            selfSignUpEnabled: false,
+            autoVerify: {
+                email: true
             },
             signInAliases: {
-                username: true,
+                email: true,
             },
-            customAttributes: {
-                isAdmin: new cognito.BooleanAttribute({ mutable: true })
-            },
-            passwordPolicy: {
-                minLength: 8,
-                requireLowercase: true,
-                requireUppercase: true,
-                requireDigits: true,
+            standardAttributes: {
+                fullname: {
+                    required: true,
+                    mutable: true
+                },
+                phoneNumber: {
+                    required: false,
+                    mutable: true
+                },
+                profilePicture: {
+                    required: false,
+                    mutable: true
+                }
             }
         });
 
-        const client = pool.addClient('todo-app-client', {
-            oAuth: {
-                flows: {
-                  implicitCodeGrant: true,
-                  authorizationCodeGrant: true
-                },
-                callbackUrls: [
-                  'https://d2lzu2s2ab91k6.cloudfront.net/',
-                  'https://d2lzu2s2ab91k6.cloudfront.net/todos',
-                ],
-                logoutUrls: [
-                    'https://https://d2lzu2s2ab91k6.cloudfront.net/'
-                ],
-                scopes: [
-                    cognito.OAuthScope.PHONE,
-                    cognito.OAuthScope.EMAIL,
-                    cognito.OAuthScope.OPENID,
-                    cognito.OAuthScope.PROFILE,
-                    cognito.OAuthScope.COGNITO_ADMIN
-                ]
-              }
+        this.userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
+            userPool: this.userPool,
+            generateSecret: false,
+            authFlows: {
+                adminUserPassword: true,
+                userSrp: true,
+            }
         });
 
-        const domain = pool.addDomain('CognitoDomain', {
-            cognitoDomain: {
-                domainPrefix: 'todo-app-22981456'
-            },
-        })
+        // Groups ----------------------------------------------
 
-        const signInUrl = domain.signInUrl(client, {
-            redirectUri: 'https://myapp.com/home', // must be a URL configured under 'callbackUrls' with the client
-          })
+        new cognito.CfnUserPoolGroup(this, 'AdminGroup', {
+            userPoolId: this.userPool.userPoolId,
+            groupName: 'admin',
+            precedence: 1,
+            description: 'Admin users',
+        });
 
+        new cognito.CfnUserPoolGroup(this, 'ContributorGroup', {
+            userPoolId: this.userPool.userPoolId,
+            groupName: 'contributor',
+            precedence: 5,
+            description: 'Users who can manager documents but no users',
+        });
 
-        const clientId = client.userPoolClientId;
-
-        new cdk.CfnOutput(this, "theclientId", {
-            value: clientId,
-        })
-
+        new cognito.CfnUserPoolGroup(this, 'ReaderGroup', {
+            userPoolId: this.userPool.userPoolId,
+            groupName: 'reader',
+            precedence: 10,
+            description: 'Users who can read documents but not edit',
+        });
     }
 }

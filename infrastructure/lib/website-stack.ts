@@ -12,7 +12,7 @@ export class WebsiteStack extends cdk.Stack {
     new SPADeploy(this, 'websiteDeploy')
       .createSiteWithCloudfront({
         indexDoc: 'index.html',
-        websiteFolder: '../webapp/out'
+        websiteFolder: '../webapp/out',
       })
 
     }
